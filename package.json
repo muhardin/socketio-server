@@ -11,6 +11,8 @@
   "license": "ISC",
   "dependencies": {
     "@socket.io/admin-ui": "^0.5.1",
+    "axios": "^1.6.7",
+    "node-fetch": "^3.3.2",
     "socket.io": "^4.7.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
