@@ -1,33 +1,10 @@
-import { Server } from "socket.io";
-import { createServer } from "http";
-import SessionStore from "./SessionStore";
-import MessageStore from "./MessageStore";
+const { Server } = require("socket.io");
+const { createServer } = require("http");
 import axios from "axios";
-const { instrument } = require("@socket.io/admin-ui");
-const crypto = require("crypto");
+// const fetch = require("node-fetch"); // Import fetch for Node.js environment
 
-const messageStore = new MessageStore();
-const store = new SessionStore();
 const httpServer = createServer();
-
-const io = new Server(httpServer, {
-  cors: {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:8000",
-      "https://admin.socket.io",
-      "http://167.114.115.146:3009",
-      "https://7trade.justview.online",
-    ],
-    methods: ["GET", "POST"],
-  },
-});
-
-instrument(io, {
-  auth: false,
-  mode: "development",
-});
-
+const io = new Server(httpServer);
 interface CandlestickData {
   timestamp: string;
   open: string;
@@ -106,6 +83,7 @@ const submitDataToOtherAPI = async (data:CandlestickData[],time:any) => {
     console.error("Error submitting data to the other API:", error);
   }
 };
+
 const startFetchingData = () => {
   // Fetch and emit candlestick data immediately upon starting the script
   fetchAndEmitCandlestickData();
@@ -113,43 +91,8 @@ const startFetchingData = () => {
   setInterval(fetchAndEmitCandlestickData, 1000);
 };
 
-io.on("connection", (socket) => {
-  // Emit the "notification" event every 5 seconds
-  // const intervalIdD = setInterval(() => {
-  //   socket.emit("notification", {
-  //     message: "New content is available!",
-  //   });
-  //   console.log("Notification emitted");
-  // }, 1000);
-
-  console.log('New connection:', socket.id);
-
-  socket.on("push-notification", (message) => {
-    console.log("Received Data:", message);
-    io.emit("push-notification", message); // Broadcast the message to all connected sockets
-  });
-
-  socket.on("message", (message) => {
-    console.log("Received message:", message);
-    io.emit("message", message); // Broadcast the message to all connected sockets
-  });
-
-  console.log("A user connected");
-  socket.on("disconnect", () => {
-    console.log("A user disconnected");
-    // clearInterval(intervalIdD); // Clear the interval when a user disconnects
-  });
-});
-
-// Emit a sample notification after 5 seconds
-setTimeout(() => {
-  io.emit("notification", {
-    message: "New content is available!",
-  });
-  console.log("notification");
-}, 5000);
-
 httpServer.listen(3009, () => {
   console.log("WebSocket server is listening on port - 3009");
+  // Start fetching data once the server is running
   startFetchingData();
 });
