@@ -3,6 +3,8 @@ import { createServer } from "http";
 import SessionStore from "./SessionStore";
 import MessageStore from "./MessageStore";
 import axios from "axios";
+import cron from "node-cron";
+
 const { instrument } = require("@socket.io/admin-ui");
 const crypto = require("crypto");
 
@@ -10,6 +12,12 @@ const messageStore = new MessageStore();
 const store = new SessionStore();
 const httpServer = createServer();
 
+function logMessage() {
+  console.log("Cron job executed at:", new Date().toLocaleString());
+}
+cron.schedule("* * * * *", () => {
+  logMessage();
+});
 const io = new Server(httpServer, {
   cors: {
     origin: [
@@ -40,7 +48,6 @@ interface CandlestickData {
 }
 /** https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1min&startTime=&limit=60 */
 
-
 const fetchAndEmitCandlestickData = async () => {
   const time = new Date().getTime() - 60 * 60 * 1000;
   try {
@@ -52,7 +59,7 @@ const fetchAndEmitCandlestickData = async () => {
     );
     const newData = await response.json();
     const formattedData = formatCandlestickData(newData.data);
-    await submitDataToOtherAPI(formattedData,time);
+    await submitDataToOtherAPI(formattedData, time);
     // console.log(formattedData)
   } catch (error) {
     console.error("Error fetching candlestick data:", error);
@@ -67,7 +74,7 @@ const fetchTradeOpen = async () => {
     );
     const newData = await response.json();
     const formattedData = formatCandlestickData(newData.data);
-    await submitDataToOtherAPI(formattedData,time);
+    await submitDataToOtherAPI(formattedData, time);
     // console.log(formattedData)
   } catch (error) {
     console.error("Error fetching candlestick data:", error);
@@ -88,16 +95,20 @@ const formatCandlestickData = (data: string[][]): CandlestickData[] => {
   }));
 };
 
-const submitDataToOtherAPI = async (data:CandlestickData[],time:any) => {
+const submitDataToOtherAPI = async (data: CandlestickData[], time: any) => {
   const postData = {
     candlestickData: data,
-    currentTime: time
+    currentTime: time,
   };
   try {
     // Replace the URL with the endpoint of the other API and modify the submission logic as needed
-    const response = await axios.post("https://justview.online/api/trading/post-price", postData);
-    console.log(response.data)
-    if (response.status==200) {
+    // const response = await axios.post("https://justview.online/api/trading/post-price", postData);
+    const response = await axios.post(
+      "http://127.0.0.1:8000/api/trading/post-price",
+      postData
+    );
+    console.log(response.data);
+    if (response.status == 200) {
       console.log("Data submitted successfully to the other API");
     } else {
       console.error("Failed to submit data to the other API");
@@ -113,7 +124,7 @@ const startFetchingData = () => {
   setInterval(fetchAndEmitCandlestickData, 1000);
 };
 
-io.on("connection", (socket) => {
+io.on("connection", (socket: any) => {
   // Emit the "notification" event every 5 seconds
   // const intervalIdD = setInterval(() => {
   //   socket.emit("notification", {
@@ -122,14 +133,14 @@ io.on("connection", (socket) => {
   //   console.log("Notification emitted");
   // }, 1000);
 
-  console.log('New connection:', socket.id);
+  console.log("New connection:", socket.id);
 
-  socket.on("push-notification", (message) => {
+  socket.on("push-notification", (message: string) => {
     console.log("Received Data:", message);
     io.emit("push-notification", message); // Broadcast the message to all connected sockets
   });
 
-  socket.on("message", (message) => {
+  socket.on("message", (message: string) => {
     console.log("Received message:", message);
     io.emit("message", message); // Broadcast the message to all connected sockets
   });
