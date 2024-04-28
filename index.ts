@@ -104,7 +104,7 @@ const submitDataToOtherAPI = async (data: CandlestickData[], time: any) => {
     // Replace the URL with the endpoint of the other API and modify the submission logic as needed
     // const response = await axios.post("https://justview.online/api/trading/post-price", postData);
     const response = await axios.post(
-      "http://127.0.0.1:8000/api/trading/post-price",
+      "https://api.7trade.pro/api/trading/post-price",
       postData
     );
     console.log(response.data);
