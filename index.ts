@@ -24,7 +24,7 @@ const io = new Server(httpServer, {
       "http://localhost:3000",
       "http://localhost:8000",
       "https://admin.socket.io",
-      "http://167.114.115.146:3009",
+      "http://69.87.223.182:3009",
       "https://7trade.justview.online",
     ],
     methods: ["GET", "POST"],
@@ -46,43 +46,22 @@ interface CandlestickData {
   trading_fiat: string;
   volume: string;
 }
-/** https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1min&startTime=&limit=60 */
 
 const fetchAndEmitCandlestickData = async () => {
   const time = new Date().getTime() - 60 * 60 * 1000;
   try {
-    // const response = await fetch(
-    //   `https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1min&startTime=${time}&limit=60`
-    // );
-    const response = await fetch(
+    const response = await axios.get(
       `https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1min&limit=60`
     );
-    const newData = await response.json();
+    const newData = response.data;
     const formattedData = formatCandlestickData(newData.data);
     await submitDataToOtherAPI(formattedData, time);
-    // console.log(formattedData)
-  } catch (error) {
-    console.error("Error fetching candlestick data:", error);
-  }
-};
-
-const fetchTradeOpen = async () => {
-  const time = new Date().getTime() - 60 * 60 * 1000;
-  try {
-    const response = await fetch(
-      `https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=1min&limit=60`
-    );
-    const newData = await response.json();
-    const formattedData = formatCandlestickData(newData.data);
-    await submitDataToOtherAPI(formattedData, time);
-    // console.log(formattedData)
   } catch (error) {
     console.error("Error fetching candlestick data:", error);
   }
 };
 
 const formatCandlestickData = (data: string[][]): CandlestickData[] => {
-  // console.log(data)
   return data.map((candlestick) => ({
     timestamp: candlestick[0],
     open: candlestick[1],
@@ -101,8 +80,6 @@ const submitDataToOtherAPI = async (data: CandlestickData[], time: any) => {
     currentTime: time,
   };
   try {
-    // Replace the URL with the endpoint of the other API and modify the submission logic as needed
-    // const response = await axios.post("https://justview.online/api/trading/post-price", postData);
     const response = await axios.post(
       "https://api.7trade.pro/api/trading/post-price",
       postData
@@ -117,42 +94,31 @@ const submitDataToOtherAPI = async (data: CandlestickData[], time: any) => {
     console.error("Error submitting data to the other API:", error);
   }
 };
+
 const startFetchingData = () => {
-  // Fetch and emit candlestick data immediately upon starting the script
   fetchAndEmitCandlestickData();
-  // Schedule interval to fetch and emit candlestick data every 5 seconds
   setInterval(fetchAndEmitCandlestickData, 1000);
 };
 
 io.on("connection", (socket: any) => {
-  // Emit the "notification" event every 5 seconds
-  // const intervalIdD = setInterval(() => {
-  //   socket.emit("notification", {
-  //     message: "New content is available!",
-  //   });
-  //   console.log("Notification emitted");
-  // }, 1000);
-
   console.log("New connection:", socket.id);
 
   socket.on("push-notification", (message: string) => {
     console.log("Received Data:", message);
-    io.emit("push-notification", message); // Broadcast the message to all connected sockets
+    io.emit("push-notification", message);
   });
 
   socket.on("message", (message: string) => {
     console.log("Received message:", message);
-    io.emit("message", message); // Broadcast the message to all connected sockets
+    io.emit("message", message);
   });
 
   console.log("A user connected");
   socket.on("disconnect", () => {
     console.log("A user disconnected");
-    // clearInterval(intervalIdD); // Clear the interval when a user disconnects
   });
 });
 
-// Emit a sample notification after 5 seconds
 setTimeout(() => {
   io.emit("notification", {
     message: "New content is available!",
